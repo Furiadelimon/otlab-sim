@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>otlab-sim — simulated Modbus TCP + OPC UA field devices for testing SCADA without hardware</title>
+<meta name="description" content="otlab-sim turns one YAML file into simulated Modbus TCP and OPC UA field devices with realistic behaviour and fault injection, so you can test a SCADA/HMI/gateway without any PLC hardware. Free, MIT-licensed, runs in Docker.">
+<meta property="og:title" content="otlab-sim — simulated Modbus TCP + OPC UA field devices for testing SCADA without hardware">
+<meta property="og:description" content="One YAML → Modbus TCP + OPC UA simulated field devices with realistic behaviour and fault injection. Runs in Docker in 60 seconds. Free and MIT-licensed.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://github.com/Furiadelimon/otlab-sim">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="otlab-sim — simulated Modbus TCP + OPC UA field devices">
+<meta name="twitter:description" content="Test your SCADA, HMI or OPC UA gateway without a single PLC. One YAML, Docker, 60 seconds.">
+<style>
+  :root{
+    --bg:#ffffff;
+    --bg-alt:#f4f6f8;
+    --fg:#16202a;
+    --fg-muted:#4b5a68;
+    --border:#dfe5ea;
+    --accent:#0b6e4f;
+    --accent-fg:#ffffff;
+    --code-bg:#0f172a;
+    --code-fg:#e2e8f0;
+    --card-bg:#ffffff;
+    --pill-bg:#e8f3ee;
+    --pill-fg:#0b6e4f;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0f1417;
+      --bg-alt:#151b20;
+      --fg:#e7edf2;
+      --fg-muted:#a3b1bb;
+      --border:#28323a;
+      --accent:#33c78a;
+      --accent-fg:#06251b;
+      --code-bg:#0a0f14;
+      --code-fg:#d8e2ea;
+      --card-bg:#171e23;
+      --pill-bg:#132821;
+      --pill-fg:#33c78a;
+    }
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height:1.55;
+  }
+  a{color:var(--accent);}
+  .wrap{max-width:960px; margin:0 auto; padding:0 20px;}
+  header.site{
+    border-bottom:1px solid var(--border);
+    padding:16px 0;
+  }
+  header.site .wrap{display:flex; align-items:center; justify-content:space-between; gap:12px;}
+  .brand{font-weight:700; font-size:1.05rem; letter-spacing:-0.02em;}
+  .brand span{color:var(--accent);}
+  nav.top a{margin-left:18px; font-size:0.92rem; text-decoration:none; color:var(--fg-muted);}
+  nav.top a:hover{color:var(--fg);}
+  .hero{padding:64px 0 48px;}
+  .hero h1{
+    font-size:clamp(1.7rem, 4vw, 2.6rem);
+    line-height:1.2;
+    margin:0 0 16px;
+    max-width:20ch;
+  }
+  .hero p.sub{
+    font-size:1.1rem;
+    color:var(--fg-muted);
+    max-width:60ch;
+    margin:0 0 28px;
+  }
+  .cta-row{display:flex; flex-wrap:wrap; gap:12px;}
+  .btn{
+    display:inline-block;
+    padding:12px 20px;
+    border-radius:8px;
+    text-decoration:none;
+    font-weight:600;
+    font-size:0.95rem;
+    border:1px solid transparent;
+  }
+  .btn-primary{background:var(--accent); color:var(--accent-fg);}
+  .btn-secondary{background:transparent; color:var(--fg); border-color:var(--border);}
+  .badge{
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--pill-bg); color:var(--pill-fg);
+    padding:4px 10px; border-radius:999px; font-size:0.8rem; font-weight:600;
+    margin-bottom:18px;
+  }
+  section{padding:44px 0;}
+  section.alt{background:var(--bg-alt); border-top:1px solid var(--border); border-bottom:1px solid var(--border);}
+  h2{font-size:1.5rem; margin:0 0 28px;}
+  h2 .lede{display:block; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--fg-muted); font-weight:700; margin-bottom:6px;}
+  .grid{display:grid; gap:20px;}
+  .grid-4{grid-template-columns:repeat(4, 1fr);}
+  .grid-3{grid-template-columns:repeat(3, 1fr);}
+  .grid-2{grid-template-columns:repeat(2, 1fr);}
+  @media (max-width:800px){
+    .grid-4, .grid-3, .grid-2{grid-template-columns:1fr;}
+  }
+  .card{
+    background:var(--card-bg);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:20px;
+  }
+  .card h3{margin:0 0 8px; font-size:1.05rem;}
+  .card p{margin:0; color:var(--fg-muted); font-size:0.95rem;}
+  .steps{counter-reset:step;}
+  .step{position:relative; padding-left:44px; margin-bottom:28px;}
+  .step::before{
+    counter-increment:step;
+    content:counter(step);
+    position:absolute; left:0; top:0;
+    width:30px; height:30px;
+    border-radius:50%;
+    background:var(--accent); color:var(--accent-fg);
+    display:flex; align-items:center; justify-content:center;
+    font-weight:700; font-size:0.95rem;
+  }
+  .step h3{margin:2px 0 8px;}
+  pre{
+    background:var(--code-bg);
+    color:var(--code-fg);
+    padding:16px;
+    border-radius:8px;
+    overflow-x:auto;
+    font-size:0.85rem;
+    line-height:1.5;
+  }
+  code{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;}
+  p code, li code{
+    background:var(--bg-alt);
+    border:1px solid var(--border);
+    padding:1px 5px;
+    border-radius:5px;
+    font-size:0.88em;
+  }
+  table{width:100%; border-collapse:collapse; margin-top:12px; font-size:0.92rem;}
+  th, td{text-align:left; padding:8px 10px; border-bottom:1px solid var(--border);}
+  th{color:var(--fg-muted); font-weight:600; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.03em;}
+  .price-card{display:flex; flex-direction:column; height:100%;}
+  .price-card .price{font-size:1.7rem; font-weight:700; margin:4px 0 2px;}
+  .price-card .price small{font-size:0.9rem; font-weight:500; color:var(--fg-muted);}
+  .price-card ul{margin:14px 0; padding-left:20px; color:var(--fg-muted); font-size:0.92rem; flex-grow:1;}
+  .price-card li{margin-bottom:6px;}
+  .not-on-sale{
+    font-size:0.82rem;
+    color:var(--fg-muted);
+    background:var(--bg-alt);
+    border:1px dashed var(--border);
+    border-radius:8px;
+    padding:8px 10px;
+    margin:10px 0;
+  }
+  .price-card .btn{text-align:center; margin-top:6px;}
+  details{
+    background:var(--card-bg);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:14px 16px;
+    margin-bottom:12px;
+  }
+  details summary{font-weight:600; cursor:pointer;}
+  details p{margin:10px 0 0; color:var(--fg-muted);}
+  footer{padding:36px 0; border-top:1px solid var(--border);}
+  footer .wrap{display:flex; flex-wrap:wrap; gap:10px; justify-content:space-between; align-items:center; color:var(--fg-muted); font-size:0.88rem;}
+  footer a{color:var(--fg-muted); text-decoration:underline;}
+  .fault-grid{display:grid; gap:16px; grid-template-columns:repeat(2, 1fr);}
+  @media (max-width:700px){.fault-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <div class="brand">otlab<span>-sim</span></div>
+    <nav class="top">
+      <a href="#how-it-works">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+      <a href="https://github.com/Furiadelimon/otlab-sim">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <span class="badge">MIT licensed &middot; runs in Docker</span>
+    <h1>Test your SCADA, HMI or OPC UA gateway without a single PLC.</h1>
+    <p class="sub">One YAML file → Modbus TCP + OPC UA simulated field devices with realistic behaviour and fault injection. Runs in Docker in 60 seconds.</p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="https://github.com/Furiadelimon/otlab-sim">Get started (GitHub)</a>
+      <a class="btn btn-secondary" href="https://github.com/Furiadelimon/otlab-sim/issues/1">I want the Pro pack / a custom plant</a>
+    </div>
+  </div>
+</section>
+
+<section id="who">
+  <div class="wrap">
+    <h2><span class="lede">Who it's for</span>No hardware on the bench, still real integration work</h2>
+    <div class="grid grid-4">
+      <div class="card">
+        <h3>SCADA/HMI integrators</h3>
+        <p>Build and demo a project before the panel is wired or the plant exists — point your gateway at otlab-sim instead of waiting on hardware.</p>
+      </div>
+      <div class="card">
+        <h3>Trainers &amp; schools</h3>
+        <p>Give every student a live Modbus/OPC UA process on their laptop, without a lab full of PLCs to maintain and reset.</p>
+      </div>
+      <div class="card">
+        <h3>OT security teams</h3>
+        <p>Practice detection and response against a device that actually drops offline or drifts out of range, without risking a real control system.</p>
+      </div>
+      <div class="card">
+        <h3>Product &amp; QA teams</h3>
+        <p>Run repeatable regression tests against a scripted fault timeline in CI, instead of manually pulling wires to trigger an alarm.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="alt" id="how-it-works">
+  <div class="wrap">
+    <h2><span class="lede">How it works</span>One config, two protocols, real timing</h2>
+    <div class="steps">
+      <div class="step">
+        <h3>1. Describe your process in YAML</h3>
+        <p>Tags, units, addresses and a behaviour (sine, ramp, random walk, step, constant). This is a trimmed excerpt of the bundled <code>examples/pump_station.yaml</code>:</p>
+        <pre><code>tags:
+  - name: tank_level
+    type: float32
+    unit: "%"
+    address: 0
+    initial: 50.0
+    behaviour: {type: sine, min: 0, max: 100, period_s: 600}
+
+  - name: pump1_running
+    type: bool
+    address: 0
+    initial: true
+    writable: true
+    behaviour: {type: constant}
+
+scenario:
+  - at: 120
+    tag: pressure
+    fault: spike
+    magnitude: 3.0
+    duration_s: 15</code></pre>
+      </div>
+      <div class="step">
+        <h3>2. Run it in Docker</h3>
+        <p>No local Python setup required:</p>
+        <pre><code>docker compose up --build</code></pre>
+        <p>This starts the bundled pump station process on Modbus TCP port <code>5020</code> and OPC UA port <code>4840</code>.</p>
+      </div>
+      <div class="step">
+        <h3>3. Point your gateway or HMI at it</h3>
+        <p>Connect over Modbus TCP to <code>localhost:5020</code> (unit id 1), or over OPC UA to:</p>
+        <pre><code>opc.tcp://host:4840/otlab-sim/</code></pre>
+      </div>
+    </div>
+
+    <h3>Register map</h3>
+    <table>
+      <thead><tr><th>Type</th><th>Modbus mapping</th></tr></thead>
+      <tbody>
+        <tr><td><code>float32</code></td><td>2 holding registers at <code>address</code> and <code>address+1</code>, big-endian (high word first — the common "ABCD" encoding)</td></tr>
+        <tr><td><code>int16</code> / <code>uint16</code></td><td>1 holding register at <code>address</code></td></tr>
+        <tr><td><code>bool</code></td><td>1 coil at <code>address</code> (not a holding register bit)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="faults">
+  <div class="wrap">
+    <h2><span class="lede">Fault injection</span>Faults on a schedule, not on luck</h2>
+    <div class="fault-grid">
+      <div class="card">
+        <h3>Stuck</h3>
+        <p>The tag freezes at its last value. Tests whether your HMI/historian notices a sensor that has silently stopped updating.</p>
+      </div>
+      <div class="card">
+        <h3>Spike</h3>
+        <p>A fixed offset is added for a set duration. Exercises alarm thresholds and operator alert logic on a repeatable trigger.</p>
+      </div>
+      <div class="card">
+        <h3>Drift</h3>
+        <p>An offset that grows linearly over time. Good for testing slow-degradation detection and predictive-maintenance rules.</p>
+      </div>
+      <div class="card">
+        <h3>Offline</h3>
+        <p>The Modbus listener actually stops — connections are refused, not just stale. Tests gateway failover and watchdog timeouts against a device that has truly dropped off the bus.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="alt" id="pricing">
+  <div class="wrap">
+    <h2><span class="lede">Pricing</span>The simulator is free. Support is optional.</h2>
+    <div class="grid grid-3">
+      <div class="card price-card">
+        <h3>Core</h3>
+        <div class="price">Free forever<br><small>MIT license</small></div>
+        <ul>
+          <li>Everything in the public repo</li>
+          <li>Modbus TCP + OPC UA servers from one YAML</li>
+          <li>Built-in behaviours and fault injection</li>
+          <li>Use commercially, modify, redistribute</li>
+        </ul>
+        <a class="btn btn-secondary" href="https://github.com/Furiadelimon/otlab-sim">Get it on GitHub</a>
+      </div>
+      <div class="card price-card">
+        <h3>Pro scenario pack</h3>
+        <div class="price">39 &euro; <small>one-time (planned)</small></div>
+        <ul>
+          <li>Multi-device plants (several coordinated endpoints)</li>
+          <li>IEC 62443-style anomaly scenarios</li>
+          <li>CI/CD test harness</li>
+          <li>WinCC, Ignition and Node-RED integration guides</li>
+        </ul>
+        <div class="not-on-sale">Not on sale yet. Tell us on the interest thread and you'll be first to know; early interest shapes what gets built.</div>
+        <a class="btn btn-primary" href="https://github.com/Furiadelimon/otlab-sim/issues/1">Register interest</a>
+      </div>
+      <div class="card price-card">
+        <h3>Custom simulated plant</h3>
+        <div class="price">from 190 &euro; <small>fixed price</small></div>
+        <ul>
+          <li>Send us your register map / tag list</li>
+          <li>We model it as an otlab-sim config</li>
+          <li>Delivered ready-to-run, mirroring your devices</li>
+          <li>Integrate before your hardware arrives</li>
+        </ul>
+        <div class="not-on-sale">Not on sale yet. Tell us on the interest thread and you'll be first to know; early interest shapes what gets built.</div>
+        <a class="btn btn-primary" href="https://github.com/Furiadelimon/otlab-sim/issues/1">Register interest</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <h2><span class="lede">FAQ</span>Short answers</h2>
+
+    <details>
+      <summary>Does this replace a PLC?</summary>
+      <p>No. otlab-sim simulates the data your PLC would expose over Modbus TCP / OPC UA (with realistic movement and faults) so you can test the layers above it — SCADA, HMI, gateways, historians. It does not run ladder logic or control real I/O.</p>
+    </details>
+    <details>
+      <summary>Does it run on Windows?</summary>
+      <p>Yes, via Docker (recommended) or a local Python virtual environment; both are documented in the repo README.</p>
+    </details>
+    <details>
+      <summary>Can I use it commercially?</summary>
+      <p>Yes. The core simulator is MIT licensed — use, modify, and redistribute it, including in commercial projects, at no cost.</p>
+    </details>
+    <details>
+      <summary>How do I model my own devices?</summary>
+      <p>Write a YAML file listing your tags (name, type, address, behaviour) as shown in <code>examples/pump_station.yaml</code>, or open an interest thread if you'd rather have us build it for you as a custom simulated plant.</p>
+    </details>
+    <details>
+      <summary>How do I contact you?</summary>
+      <p>Through GitHub issues on the <a href="https://github.com/Furiadelimon/otlab-sim">otlab-sim repository</a> — that's where features, bugs and pro/custom interest are tracked.</p>
+    </details>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>MIT licensed &middot; Made by Furiadelimon</div>
+    <div><a href="https://github.com/Furiadelimon/otlab-sim">github.com/Furiadelimon/otlab-sim</a></div>
+  </div>
+</footer>
+
+</body>
+</html>

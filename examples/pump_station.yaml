@@ -1,0 +1,71 @@
+# Example process: a small pump station with a tank, a pump, and sensors.
+# Modbus map (holding registers unless noted):
+#   tank_level     -> 0-1  (float32)
+#   inlet_flow     -> 2-3  (float32)
+#   outlet_flow    -> 4-5  (float32)
+#   pump1_current  -> 6-7  (float32)
+#   pressure       -> 8-9  (float32)
+#   pump1_running  -> coil 0 (bool)
+
+tick_rate_hz: 2
+
+tags:
+  - name: tank_level
+    type: float32
+    unit: "%"
+    address: 0
+    initial: 50.0
+    behaviour: {type: sine, min: 0, max: 100, period_s: 600}
+
+  - name: inlet_flow
+    type: float32
+    unit: "m3/h"
+    address: 2
+    initial: 20.0
+    behaviour: {type: random_walk, min: 0, max: 50, step: 1.5}
+
+  - name: outlet_flow
+    type: float32
+    unit: "m3/h"
+    address: 4
+    initial: 18.0
+    behaviour: {type: random_walk, min: 0, max: 50, step: 1.5}
+
+  - name: pump1_current
+    type: float32
+    unit: "A"
+    address: 6
+    initial: 12.0
+    behaviour: {type: random_walk, min: 0, max: 30, step: 0.5}
+
+  - name: pressure
+    type: float32
+    unit: "bar"
+    address: 8
+    initial: 4.0
+    behaviour: {type: sine, min: 2, max: 6, period_s: 300}
+
+  - name: pump1_running
+    type: bool
+    address: 0
+    initial: true
+    writable: true
+    behaviour: {type: constant}
+
+# Timed faults: a scripted upset that repeatable integration tests can rely on.
+scenario:
+  - at: 120
+    tag: pressure
+    fault: spike
+    magnitude: 3.0
+    duration_s: 15
+
+  - at: 300
+    tag: tank_level
+    fault: stuck
+    duration_s: 60
+
+  - at: 420
+    tag: pump1_current
+    fault: offline
+    duration_s: 20

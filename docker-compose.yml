@@ -1,0 +1,8 @@
+services:
+  otlab-sim:
+    build: .
+    image: otlab-sim:latest
+    ports:
+      - "5020:5020"
+      - "4840:4840"
+    command: ["--config", "examples/pump_station.yaml", "--modbus-port", "5020", "--opcua-port", "4840"]
